@@ -1,84 +1,67 @@
 /**
- * 🤘 Welcome to Stagehand!
+ * This file is meant to be used as a scratchpad for trying out actionable observe.
+ * To create a Stagehand project with best practices and configuration, run:
  *
- * TO RUN THIS PROJECT:
- * ```
- * npm install
- * npm run start
- * ```
- *
- * To edit config, see `stagehand.config.ts`
- *
- * In this example, we'll be using a custom LLM client to use Ollama instead of the default OpenAI client.
- *
- * 1. Go to Hacker News (https://news.ycombinator.com)
- * 2. Use `extract` to find the top 3 stories
+ * npx create-browser-app@latest my-browser-app
  */
 
-import StagehandConfig from "./stagehand.config.js";
-import { Page, BrowserContext, Stagehand } from "@browserbasehq/stagehand";
-import { z } from "zod";
-import chalk from "chalk";
-import boxen from "boxen";
-import dotenv from "dotenv";
+import { Stagehand } from "@browserbasehq/stagehand";
+import stagehandConfig from "./stagehand.config.js";
 
-dotenv.config();
+export async function main() {
+  const stagehand = new Stagehand(stagehandConfig);
+  await stagehand.init();
+  await stagehand.page.goto("https://www.apartments.com/san-francisco-ca/");
 
-export async function main({
-  page,
-  context,
-  stagehand,
-}: {
-  page: Page; // Playwright Page with act, extract, and observe methods
-  context: BrowserContext; // Playwright BrowserContext
-  stagehand: Stagehand; // Stagehand instance
-}) {
-  await stagehand.page.goto("https://news.ycombinator.com");
-
-  const headlines = await stagehand.page.extract({
-    instruction: "Extract the top story from the Hacker News homepage.",
-    schema: z.object({
-      story: z.object({
-        title: z.string(),
-        points: z.number(),
-      }),
-    }),
-    useTextExtract: true,
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  const observations1 = await stagehand.page.observe({
+    instruction: "find the 'all filters' button",
   });
+  await stagehand.page.act(observations1[0]);
 
-  console.log(headlines);
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  const observations2 = await stagehand.page.observe({
+    instruction: "find the '1+' button in the 'beds' section",
+  });
+  await stagehand.page.act(observations2[0]);
 
-  //   Close the browser
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  const observations3 = await stagehand.page.observe({
+    instruction: "find the 'apartments' button in the 'home type' section",
+  });
+  await stagehand.page.act(observations3[0]);
+
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  const observations4 = await stagehand.page.observe({
+    instruction: "find the pet policy dropdown to click on.",
+  });
+  await stagehand.page.act(observations4[0]);
+
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  const observations5 = await stagehand.page.observe({
+    instruction: "find the 'Dog Friendly' option to click on",
+  });
+  await stagehand.page.act(observations5[0]);
+
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  const observations6 = await stagehand.page.observe({
+    instruction: "find the 'see results' section",
+  });
+  await stagehand.page.act(observations6[0]);
+
+  const currentUrl = await stagehand.page.url();
   await stagehand.close();
-
-  if (StagehandConfig.env === "BROWSERBASE" && stagehand.browserbaseSessionID) {
-    console.log(
-      "Session completed. Waiting for 10 seconds to see the logs and recording..."
-    );
-    //   Wait for 10 seconds to see the logs
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-    console.log(
-      boxen(
-        `View this session recording in your browser: \n${chalk.blue(
-          `https://browserbase.com/sessions/${stagehand.browserbaseSessionID}`
-        )}`,
-        {
-          title: "Browserbase",
-          padding: 1,
-          margin: 3,
-        }
-      )
-    );
+  if (
+    currentUrl.includes(
+      "https://www.apartments.com/apartments/san-francisco-ca/min-1-bedrooms-pet-friendly-dog/",
+    )
+  ) {
+    console.log("✅ Success! we made it to the correct page");
   } else {
     console.log(
-      "We hope you enjoyed using Stagehand locally! On Browserbase, you can bypass captchas, replay sessions, and access unparalleled debugging tools!\n10 free sessions: https://www.browserbase.com/sign-up\n\n"
+      "❌ Whoops, looks like we didnt make it to the correct page. " +
+        "\nThanks for testing out this new Stagehand feature!" +
+        "\nReach us on Slack if you have any feedback/questions/suggestions!",
     );
   }
-
-  console.log(
-    `\n🤘 Thanks for using Stagehand! Create an issue if you have any feedback: ${chalk.blue(
-      "https://github.com/browserbase/stagehand/issues/new"
-    )}\n`
-  );
-  process.exit(0);
 }

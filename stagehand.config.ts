@@ -25,7 +25,7 @@ const StagehandConfig: ConstructorParams = {
      * Configure the Ollama client here
      */
     llmClient: new OllamaClient({
-      modelName: "llama3.2",
+      modelName: "deepseek-r1",
     }),
   
 };
