@@ -119,7 +119,7 @@ const apartmentData = [];
   await new Promise((resolve) => setTimeout(resolve, 2500));
   
   const minPriceInput = await stagehand.page.observe({
-    instruction: "type in the minimum price 2000",
+    instruction: `type in the minimum price ${MIN_PRICE}`,
   });
   await stagehand.page.act(minPriceInput[0]);
   console.log("✅ Set minimum price");
@@ -127,7 +127,7 @@ const apartmentData = [];
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
   const observations2 = await stagehand.page.observe({
-    instruction: "find the '1+' button in the 'beds' section",
+    instruction: `find the '${UNIT_TYPE}' button in the 'beds' section`,
   });
   await stagehand.page.act(observations2[0]);
   await stagehand.page.act(observations2[0]);
@@ -175,22 +175,23 @@ const apartmentData = [];
 
   await new Promise((resolve) => setTimeout(resolve, 3000));
 
-  // Use extract to pull all unit information
+  // Use extract to pull all unit information specifically from the Pricing & Floor Plans section
   const unitsInfo = await stagehand.page.extract({
-    instruction: "Extract all available units information from the table or listing. For each unit, get the unit number/ID, base price, and square footage.",
+    instruction: "Look specifically in the 'Pricing & Floor Plans' section of the page. Extract all available units information from the table in this section. For each unit, get the unit number/ID, base price, and square footage.",
     schema: z.object({
       units: z.array(z.object({
         unitId: z.string().describe("The unit number or ID (e.g., 1511)"),
         basePrice: z.string().describe("The base price of the unit, including currency symbol (e.g., C$2,450)"),
         squareFeet: z.string().describe("The square footage of the unit (e.g., 615)"),
         availability: z.string().optional().describe("When the unit is available (e.g., Apr 1)"),
+        bedBath: z.string().optional().describe("Bed and bath configuration (e.g., '1 Bed 1 Bath')"),
       }))
     }),
     useTextExtract: true,
   });
-
+  
   console.log(`✅ Extracted information for ${unitsInfo.units.length} units`);
-
+  
   // Add data for each unit to the collection
   unitsInfo.units.forEach(unit => {
     apartmentData.push({
@@ -203,7 +204,7 @@ const apartmentData = [];
   // Always close the browser
   await stagehand.close();
   console.log("🔒 Browser closed");
-
+  
   // Save data to CSV
   await saveToCSV(apartmentData, "vancouver_apartments.csv");
   console.log(`📊 Saved data for ${apartmentData.length} units`);
