@@ -151,61 +151,133 @@ const apartmentData = [];
     // Wait for modal to fully close
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }
-  const observations7 = await stagehand.page.observe({
-    instruction: "find the 1st listing on the page and click it",
-  });
-  await stagehand.page.act(observations7[0]);
-
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-
-  // Use extract directly
-  const propertyInfo = await stagehand.page.extract({
-    instruction: "Extract the property name and full address",
-    schema: z.object({
-      propertyName: z.string(),
-      address: z.string(),
-    }),
-    useTextExtract: true,
-  });
-
-  // Then destructure the result
-  const { propertyName, address } = propertyInfo;
-  console.log("Property Name:", propertyName);
-  console.log("Address:", address);
-
-  await new Promise((resolve) => setTimeout(resolve, 3000));
-
-  // Use extract to pull all unit information specifically from the Pricing & Floor Plans section
-  const unitsInfo = await stagehand.page.extract({
-    instruction: "Look specifically in the 'Pricing & Floor Plans' section of the page. Extract all available units information from the table in this section. For each unit, get the unit number/ID, base price, and square footage.",
-    schema: z.object({
-      units: z.array(z.object({
-        unitId: z.string().describe("The unit number or ID (e.g., 1511)"),
-        basePrice: z.string().describe("The base price of the unit, including currency symbol (e.g., C$2,450)"),
-        squareFeet: z.string().describe("The square footage of the unit (e.g., 615)"),
-        availability: z.string().optional().describe("When the unit is available (e.g., Apr 1)"),
-        bedBath: z.string().optional().describe("Bed and bath configuration (e.g., '1 Bed 1 Bath')"),
-      }))
-    }),
-    useTextExtract: true,
-  });
+  // Start the process of visiting multiple listings
+  console.log(`🔍 Will process up to ${MAX_LISTINGS} property listings`);
   
-  console.log(`✅ Extracted information for ${unitsInfo.units.length} units`);
+  // Keep track of the search results page URL to return to it
+  const searchResultsUrl = await stagehand.page.evaluate(() => window.location.href);
   
-  // Add data for each unit to the collection
-  unitsInfo.units.forEach(unit => {
-    apartmentData.push({
-      propertyName: propertyInfo.propertyName,
-      address: propertyInfo.address,
-      ...unit
-    });
-  });
+  // Process multiple listings up to MAX_LISTINGS
+  for (let listingIndex = 1; listingIndex <= MAX_LISTINGS; listingIndex++) {
+    console.log(`\n📍 Processing property #${listingIndex} of ${MAX_LISTINGS}`);
+    
+    try {
+      // If we're not on the search results page, go back to it
+      if (listingIndex > 1) {
+        console.log("🔙 Returning to search results page");
+        await stagehand.page.goto(searchResultsUrl);
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+      
+      // Find and click on the nth listing
+      const listingObservation = await stagehand.page.observe({
+        instruction: `find the ${listingIndex}${getOrdinalSuffix(listingIndex)} listing on the page and click it`,
+      });
+      
+      if (!listingObservation || listingObservation.length === 0) {
+        console.log(`⚠️ Could not find listing #${listingIndex}. Stopping.`);
+        break;
+      }
+      
+      await stagehand.page.act(listingObservation[0]);
+      console.log(`✅ Clicked on listing #${listingIndex}`);
+      
+      // Wait for the property page to load
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      
+      // Extract property info
+      const propertyInfo = await stagehand.page.extract({
+        instruction: "Extract the property name and full address",
+        schema: z.object({
+          propertyName: z.string(),
+          address: z.string(),
+        }),
+        useTextExtract: true,
+      });
+      
+      // Then destructure the result
+      const { propertyName, address } = propertyInfo;
+      console.log(`📝 Property: ${propertyName}`);
+      console.log(`📍 Address: ${address}`);
+      
+      // Wait a moment for everything to load fully
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      
+      // Use extract to pull all unit information specifically from the Pricing & Floor Plans section
+      const unitsInfo = await stagehand.page.extract({
+        instruction: "Look specifically in the 'Pricing & Floor Plans' section of the page. Extract all available units information from the table in this section. For each unit, get the unit number/ID, base price, and square footage.",
+        schema: z.object({
+          units: z.array(z.object({
+            unitId: z.string().describe("The unit number or ID (e.g., 1511)"),
+            basePrice: z.string().describe("The base price of the unit, including currency symbol (e.g., C$2,450)"),
+            squareFeet: z.string().describe("The square footage of the unit (e.g., 615)"),
+            availability: z.string().optional().describe("When the unit is available (e.g., Apr 1)"),
+            bedBath: z.string().optional().describe("Bed and bath configuration (e.g., '1 Bed 1 Bath')"),
+          }))
+        }),
+        useTextExtract: true,
+      });
+      
+      // Check if units were found
+      if (unitsInfo.units && unitsInfo.units.length > 0) {
+        console.log(`✅ Extracted information for ${unitsInfo.units.length} units`);
+        
+        // Add data for each unit to the collection
+        unitsInfo.units.forEach(unit => {
+          apartmentData.push({
+            propertyName,
+            address,
+            propertyIndex: listingIndex,
+            ...unit
+          });
+        });
+      } else {
+        console.log("⚠️ No units found in the Pricing & Floor Plans section");
+        
+        // Add the property with empty unit info so we at least have the property data
+        apartmentData.push({
+          propertyName,
+          address,
+          propertyIndex: listingIndex,
+          unitId: "N/A",
+          basePrice: "N/A",
+          squareFeet: "N/A",
+          availability: "N/A"
+        });
+      }
+    } catch (error) {
+      console.error(`❌ Error processing listing #${listingIndex}:`, error);
+    }
+  }
   
   // Always close the browser
   await stagehand.close();
   console.log("🔒 Browser closed");
   
   // Save data to CSV
-  await saveToCSV(apartmentData, "vancouver_apartments.csv");
-  console.log(`📊 Saved data for ${apartmentData.length} units`);
+  if (apartmentData.length > 0) {
+    await saveToCSV(apartmentData, "vancouver_apartments.csv");
+    console.log(`📊 Saved data for ${apartmentData.length} units across ${Math.min(MAX_LISTINGS, apartmentData.length)} properties`);
+  } else {
+    console.log("❌ No data was collected");
+  }
+}
+
+/**
+ * Helper function to get the ordinal suffix for numbers (1st, 2nd, 3rd, etc.)
+ */
+function getOrdinalSuffix(n) {
+  const j = n % 10;
+  const k = n % 100;
+  
+  if (j === 1 && k !== 11) {
+    return "st";
+  }
+  if (j === 2 && k !== 12) {
+    return "nd";
+  }
+  if (j === 3 && k !== 13) {
+    return "rd";
+  }
+  return "th";
 }
