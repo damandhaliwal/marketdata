@@ -205,14 +205,19 @@ const apartmentData = [];
       
       // Use extract to pull all unit information specifically from the Pricing & Floor Plans section
       const unitsInfo = await stagehand.page.extract({
-        instruction: "Look specifically in the 'Pricing & Floor Plans' section of the page. Extract all available units information from the table in this section. For each unit, get the unit number/ID, base price, and square footage.",
+        instruction: `Look specifically in the 'Pricing & Floor Plans' section of the page. 
+          Extract units that match '${UNIT_TYPE}' only. Note: 'Studio' means 0 bedrooms, '1 Bed' means 1 bedroom, '2 Beds' means 2 bedrooms, etc.
+          Bathrooms do not factor into unit type matching - only look at the bedroom count.
+          For each matching unit, extract: unit number/ID, base price, square footage, bedroom count, bathroom count, and availability.`,
         schema: z.object({
           units: z.array(z.object({
             unitId: z.string().describe("The unit number or ID (e.g., 1511)"),
             basePrice: z.string().describe("The base price of the unit, including currency symbol (e.g., C$2,450)"),
             squareFeet: z.string().describe("The square footage of the unit (e.g., 615)"),
             availability: z.string().optional().describe("When the unit is available (e.g., Apr 1)"),
-            bedBath: z.string().optional().describe("Bed and bath configuration (e.g., '1 Bed 1 Bath')"),
+            bedrooms: z.string().describe("Number of bedrooms (e.g., '1 Bed', 'Studio')"),
+            bathrooms: z.string().describe("Number of bathrooms (e.g., '1 Bath')"),
+            floorPlan: z.string().optional().describe("Name of the floor plan if available (e.g., 'Martin II')")
           }))
         }),
         useTextExtract: true,
@@ -220,7 +225,7 @@ const apartmentData = [];
       
       // Check if units were found
       if (unitsInfo.units && unitsInfo.units.length > 0) {
-        console.log(`✅ Extracted information for ${unitsInfo.units.length} units`);
+        console.log(`✅ Extracted information for ${unitsInfo.units.length} units matching ${UNIT_TYPE}`);
         
         // Add data for each unit to the collection
         unitsInfo.units.forEach(unit => {
@@ -232,7 +237,7 @@ const apartmentData = [];
           });
         });
       } else {
-        console.log("⚠️ No units found in the Pricing & Floor Plans section");
+        console.log(`⚠️ No units matching ${UNIT_TYPE} found in the Pricing & Floor Plans section`);
         
         // Add the property with empty unit info so we at least have the property data
         apartmentData.push({
@@ -242,6 +247,8 @@ const apartmentData = [];
           unitId: "N/A",
           basePrice: "N/A",
           squareFeet: "N/A",
+          bedrooms: UNIT_TYPE,
+          bathrooms: "N/A",
           availability: "N/A"
         });
       }

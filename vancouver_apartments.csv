@@ -1,9 +1,9 @@
-propertyName,address,propertyIndex,unitId,basePrice,squareFeet,availability
-"The Duke","333 E 11th Ave, Vancouver, BC V5T 3J5","1","1511","C$2,450","615","Apr 1"
-"The Duke","333 E 11th Ave, Vancouver, BC V5T 3J5","1","317","C$1,994","408",""
-"The Evan | Mount Pleasant Rental Apartments","1908 Scotia St Unit 601, Vancouver, BC V5T 0E8","2","601","C$2,495","515 sq ft","Available Now"
-"Switchmen","180 Switchmen St, Vancouver, BC V6A 0C7","3","Plan E1","C$2,450","534",""
-"Switchmen","180 Switchmen St, Vancouver, BC V6A 0C7","3","Plan D","C$2,450 – C$2,495","521",""
-"Switchmen","180 Switchmen St, Vancouver, BC V6A 0C7","3","Plan H","C$3,595","800",""
-"Evan","1908 Scotia St, Vancouver, BC V5T 3K7","4","0505","C$2,600","515","Jun 1"
-"Evan","1908 Scotia St, Vancouver, BC V5T 3K7","5","0505","C$2,600","515","Jun 1"
+propertyName,address,propertyIndex,unitId,basePrice,squareFeet,availability,bedrooms,bathrooms,floorPlan
+"The Duke","333 E 11th Ave, Vancouver, BC V5T 3J5","1","1511","C$2,450","615","Apr 1","1 Bed","1 Bath","Martin II"
+"The Evan | Mount Pleasant Rental Apartments","1908 Scotia St Unit 601, Vancouver, BC V5T 0E8","2","1908 Scotia St Unit 601","C$2,495","515 sq ft","Available Now","1","1",""
+"Switchmen","180 Switchmen St, Vancouver, BC V6A 0C7","3","E1","C$2,450","534","Available Now","1 Bed","1 Bath","Plan E1"
+"Switchmen","180 Switchmen St, Vancouver, BC V6A 0C7","3","D","C$2,450 – C$2,495","521","Available Now","1 Bed","1 Bath","Plan D"
+"Evan","1908 Scotia St, Vancouver, BC V5T 3K7","4","0505","C$2,600","515","availibility
+Jun 1","1 Bed","1 Bath",""
+"Evan","1908 Scotia St, Vancouver, BC V5T 3K7","5","0505","C$2,600","515","availibility
+Jun 1","1 Bed","1 Bath",""
