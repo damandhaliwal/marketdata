@@ -1,7 +1,0 @@
-propertyName,address,propertyIndex,unitId,floorPlan,basePrice,squareFeet,availability,bedrooms,bathrooms
-"The Duke","333 E 11th Ave, Vancouver, BC V5T 3J5","1","1014","Martin IV","C$2,549","669","Mar 31","1 Bed","1 Bath"
-"The Duke","333 E 11th Ave, Vancouver, BC V5T 3J5","1","1511","Martin II","C$2,450","615","Apr 1","1 Bed","1 Bath"
-"The Evan | Mount Pleasant Rental Apartments","1908 Scotia St Unit 601, Vancouver, BC V5T 0E8","2","601","","C$2,495","515 sq ft","Available Now","1","1"
-"Switchmen","180 Switchmen St, Vancouver, BC V6A 0C7","3","","Plan E1","C$2,450","534","Available Now","1 Bed","1 Bath"
-"Switchmen","180 Switchmen St, Vancouver, BC V6A 0C7","3","","Plan D","C$2,450 – C$2,495","521","Available Now","1 Bed","1 Bath"
-"Evan","1908 Scotia St, Vancouver, BC V5T 3K7","4","0505","D","C$2,600","515","Jun 1","1 Bed","1 Bath"
