@@ -80,8 +80,8 @@ export async function main() {
     defaultNavigationTimeout: 60000, // Increase timeout for navigation
   });
   
-// Store apartment data
-const apartmentData = [];
+  // Store apartment data
+  const apartmentData = [];
 
   await stagehand.init();
   console.log("🌐 Browser initialized");
@@ -122,14 +122,24 @@ const apartmentData = [];
     instruction: `type in the minimum price ${MIN_PRICE}`,
   });
   await stagehand.page.act(minPriceInput[0]);
-  console.log("✅ Set minimum price");
+  console.log(`✅ Set minimum price to $${MIN_PRICE}`);
   
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
+  // Find the appropriate bedrooms button based on UNIT_TYPE
+  const bedroomTypeMapping = {
+    "Studio": "Studio",
+    "1 Bed": "1+", 
+    "2 Beds": "2+",
+    "3+ Beds": "3+"
+  };
+  const bedroomButtonText = bedroomTypeMapping[UNIT_TYPE] || "1+";
+  
   const observations2 = await stagehand.page.observe({
-    instruction: `find the '${UNIT_TYPE}' button in the 'beds' section`,
+    instruction: `find the '${bedroomButtonText}' button in the 'beds' section`,
   });
   await stagehand.page.act(observations2[0]);
+  // Click twice to ensure selection
   await stagehand.page.act(observations2[0]);
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -151,15 +161,26 @@ const apartmentData = [];
     // Wait for modal to fully close
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }
+
   // Start the process of visiting multiple listings
   console.log(`🔍 Will process up to ${MAX_LISTINGS} property listings`);
   
   // Keep track of the search results page URL to return to it
   const searchResultsUrl = await stagehand.page.evaluate(() => window.location.href);
   
-  // Process multiple listings up to MAX_LISTINGS
-  for (let listingIndex = 1; listingIndex <= MAX_LISTINGS; listingIndex++) {
-    console.log(`\n📍 Processing property #${listingIndex} of ${MAX_LISTINGS}`);
+  // First, determine how many property listings are actually available on the page
+  // Using observe to find all listing cards/elements, which is more reliable than asking for a count
+  const listingElements = await stagehand.page.observe({
+    instruction: "Find all property listing cards or elements on this search results page"
+  });
+  
+  // Calculate how many listings to process
+  const listingsToProcess = Math.min(MAX_LISTINGS, listingElements.length);
+  console.log(`📊 Found ${listingElements.length} property listings, will process ${listingsToProcess}`);
+  
+  // Process multiple listings up to the calculated limit
+  for (let listingIndex = 1; listingIndex <= listingsToProcess; listingIndex++) {
+    console.log(`\n📍 Processing property #${listingIndex} of ${listingsToProcess}`);
     
     try {
       // If we're not on the search results page, go back to it
@@ -205,19 +226,21 @@ const apartmentData = [];
       
       // Use extract to pull all unit information specifically from the Pricing & Floor Plans section
       const unitsInfo = await stagehand.page.extract({
-        instruction: `Look specifically in the 'Pricing & Floor Plans' section of the page. 
+        instruction: `Look ONLY in the left side of the page under the 'Pricing & Floor Plans' section. 
+          DO NOT extract information from the right side property cards or summaries.
+          Focus only on the detailed unit listings that appear on the left side in the main content area.
           Extract units that match '${UNIT_TYPE}' only. Note: 'Studio' means 0 bedrooms, '1 Bed' means 1 bedroom, '2 Beds' means 2 bedrooms, etc.
           Bathrooms do not factor into unit type matching - only look at the bedroom count.
-          For each matching unit, extract: unit number/ID, base price, square footage, bedroom count, bathroom count, and availability.`,
+          For each matching unit, extract: unit number/ID, floor plan name (e.g., Plan E1, Plan D), base price, square footage, bedroom count, bathroom count, and availability.`,
         schema: z.object({
           units: z.array(z.object({
-            unitId: z.string().describe("The unit number or ID (e.g., 1511)"),
+            unitId: z.string().optional().describe("The unit number/ID if available (e.g., 1511)"),
+            floorPlan: z.string().describe("Name of the floor plan (e.g., 'Plan E1', 'Plan D', 'Martin II')"),
             basePrice: z.string().describe("The base price of the unit, including currency symbol (e.g., C$2,450)"),
-            squareFeet: z.string().describe("The square footage of the unit (e.g., 615)"),
-            availability: z.string().optional().describe("When the unit is available (e.g., Apr 1)"),
-            bedrooms: z.string().describe("Number of bedrooms (e.g., '1 Bed', 'Studio')"),
-            bathrooms: z.string().describe("Number of bathrooms (e.g., '1 Bath')"),
-            floorPlan: z.string().optional().describe("Name of the floor plan if available (e.g., 'Martin II')")
+            squareFeet: z.string().describe("The square footage of the unit (e.g., 615, 534)"),
+            availability: z.string().optional().describe("When the unit is available (e.g., 'Available Now', 'Apr 1')"),
+            bedrooms: z.string().describe("Number of bedrooms (e.g., '1 Bed', 'Studio', '2 Beds')"),
+            bathrooms: z.string().describe("Number of bathrooms (e.g., '1 Bath', '2 Baths')")
           }))
         }),
         useTextExtract: true,
@@ -264,7 +287,7 @@ const apartmentData = [];
   // Save data to CSV
   if (apartmentData.length > 0) {
     await saveToCSV(apartmentData, "vancouver_apartments.csv");
-    console.log(`📊 Saved data for ${apartmentData.length} units across ${Math.min(MAX_LISTINGS, apartmentData.length)} properties`);
+    console.log(`📊 Saved data for ${apartmentData.length} units across ${listingsToProcess} properties`);
   } else {
     console.log("❌ No data was collected");
   }
